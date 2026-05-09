@@ -108,3 +108,340 @@ glimpse(df_2019)
 df_2019[1, 1:5]
 ```
 Every DP05 export includes a second row containing verbose column description such as `"Estimate!!SEX AND AGE!!Total Population"` rather than actual data values. This row must be removed before any transformation or combination step, otherwise it would be treated as a data observation. 
+
+# Cleaning & Transformation
+
+## Preserving the Raw Data
+
+Before making any changes we create a working copy of each dataframe. This ensures the original objects loaded from disk remain untouched and can be referenced at any point if needed. 
+
+```{r preserve-originals}
+raw_2019 <- df_2019
+raw_2021 <- df_2021
+raw_2022 <- df_2022
+raw_2023 <- df_2023
+raw_2024 <- df_2024
+```
+
+## Dropping the Label Row and Adding the Survey Year
+
+The label row is removed from each dataframe using `slice(-1)`. Immediately after, we add a `survey_year` column and position it as the first column using `relocate()`. Both steps are chained together since there is no reason to separate them. 
+
+```{r drop-label-add-year}
+raw_2019 <- raw_2019 %>%
+  slice(-1) %>%
+  mutate(survey_year = 2019) %>%
+  relocate(survey_year)
+raw_2021 <- raw_2021 %>%
+  slice(-1) %>%
+  mutate(survey_year = 2021) %>%
+  relocate(survey_year)
+raw_2022 <- raw_2022 %>%
+  slice(-1) %>%
+  mutate(survey_year = 2022) %>%
+  relocate(survey_year)
+raw_2023 <- raw_2023 %>%
+  slice(-1) %>%
+  mutate(survey_year = 2023) %>%
+  relocate(survey_year)
+raw_2024 <- raw_2024 %>%
+  slice(-1) %>%
+  mutate(survey_year = 2024) %>%
+  relocate(survey_year)
+```
+
+## Verifying the Label Row is Gone
+
+```{r verify-label-row}
+raw_2019[1, 1:5]
+```
+
+## Column selection and renaming
+
+The 21 variables retained for this analysis must be selected from each year's file individually because Census Bureau variables codes shifted between 2019 and later years following updates to the race and ethnicity question. Where a code differs from the 2019 baseline, the shift is documented inline as a comment. 
+
+```{r select-rename-2019}
+raw_2019 <- raw_2019 %>%
+  select(
+    survey_year,
+    geo_id = GEO_ID,
+    name = NAME,
+    total_population = DP05_0001E,
+    total_male_population = DP05_0002E,
+    total_female_population = DP05_0003E,
+    sex_ratio = DP05_0004E,
+    population_under_5 = DP05_0005E,
+    population_under_18 = DP05_0019E,
+    population_16_and_over = DP05_0020E,
+    population_18_and_over = DP05_0021E,
+    population_65_and_over = DP05_0024E,
+    median_age = DP05_0018E,
+    white_alone = DP05_0037E,
+    black_alone = DP05_0038E,
+    american_indian_alaska_native_alone = DP05_0039E,
+    asian_alone = DP05_0044E,
+    native_hawaiian_pacific_islander_alone = DP05_0052E,
+    two_or_more_races = DP05_0035E,
+    hispanic_latino = DP05_0071E,
+    not_hispanic_latino_white_alone = DP05_0077E,
+    not_hispanic_latino_black_alone = DP05_0078E,
+    total_housing_units = DP05_0086E,
+  )
+```
+
+```{r select-rename-2021}
+raw_2021 <- raw_2021 %>%
+  select(
+    survey_year,
+    geo_id = GEO_ID,
+    name = NAME,
+    total_population = DP05_0001E,
+    total_male_population = DP05_0002E,
+    total_female_population = DP05_0003E,
+    sex_ratio = DP05_0004E,
+    population_under_5 = DP05_0005E,
+    population_under_18 = DP05_0019E,
+    population_16_and_over = DP05_0020E,
+    population_18_and_over = DP05_0021E,
+    population_65_and_over = DP05_0024E,
+    median_age = DP05_0018E,
+    white_alone = DP05_0037E,
+    black_alone = DP05_0038E,
+    american_indian_alaska_native_alone = DP05_0039E,
+    asian_alone = DP05_0044E,
+    native_hawaiian_pacific_islander_alone = DP05_0052E,
+    two_or_more_races = DP05_0035E,
+    hispanic_latino = DP05_0071E,
+    not_hispanic_latino_white_alone = DP05_0077E,
+    not_hispanic_latino_black_alone = DP05_0078E,
+    total_housing_units = DP05_0086E,
+  )
+```
+
+```{r select-rename-2022}
+raw_2022 <- raw_2022 %>%
+  select(
+    survey_year,
+    geo_id = GEO_ID,
+    name = NAME,
+    total_population = DP05_0001E,
+    total_male_population = DP05_0002E,
+    total_female_population = DP05_0003E,
+    sex_ratio = DP05_0004E,
+    population_under_5 = DP05_0005E,
+    population_under_18 = DP05_0019E,
+    population_16_and_over = DP05_0020E,
+    population_18_and_over = DP05_0021E,
+    population_65_and_over = DP05_0024E,
+    median_age = DP05_0018E,
+    white_alone = DP05_0037E,
+    black_alone = DP05_0038E,
+    american_indian_alaska_native_alone = DP05_0039E,
+    asian_alone = DP05_0044E,
+    native_hawaiian_pacific_islander_alone = DP05_0052E,
+    two_or_more_races = DP05_0035E,
+    hispanic_latino = DP05_0073E, #Shifted from `DP05_0071E`
+    not_hispanic_latino_white_alone = DP05_0079E, # Shifted from `DP05_0077E`
+    not_hispanic_latino_black_alone = DP05_0080E, #Shifted from `DP05_0078E`
+    total_housing_units = DP05_0088E, #Shifted from `DP05_0086E`
+  )
+```
+
+```{r select-rename-2023}
+raw_2023 <- raw_2023 %>%
+  select(
+    survey_year,
+    geo_id = GEO_ID,
+    name = NAME,
+    total_population = DP05_0001E,
+    total_male_population = DP05_0002E,
+    total_female_population = DP05_0003E,
+    sex_ratio = DP05_0004E,
+    population_under_5 = DP05_0005E,
+    population_under_18 = DP05_0019E,
+    population_16_and_over = DP05_0020E,
+    population_18_and_over = DP05_0021E,
+    population_65_and_over = DP05_0024E,
+    median_age = DP05_0018E,
+    white_alone = DP05_0037E,
+    black_alone = DP05_0038E,
+    american_indian_alaska_native_alone = DP05_0039E,
+    asian_alone = DP05_0047E, #Shifted from `DP05_0044E`
+    native_hawaiian_pacific_islander_alone = DP05_0055E, #Shifted from `DP05_0052E`
+    two_or_more_races = DP05_0035E,
+    hispanic_latino = DP05_0076E, #Shifted from `DP05_0071E` and then again from `DP05_0073E`
+    not_hispanic_latino_white_alone = DP05_0082E, # Shifted from `DP05_0077E` and then again from `DP05_0079E`
+    not_hispanic_latino_black_alone = DP05_0083E, #Shifted from `DP05_0078E` and then again from `DP05_0080E`
+    total_housing_units = DP05_0091E, #Shifted from `DP05_0086E` and then again from `DP05_0088E`
+  )
+```
+
+```{r select-rename-2024}
+raw_2024 <- raw_2024 %>%
+  select(
+    survey_year,
+    geo_id = GEO_ID,
+    name = NAME,
+    total_population = DP05_0001E,
+    total_male_population = DP05_0002E,
+    total_female_population = DP05_0003E,
+    sex_ratio = DP05_0004E,
+    population_under_5 = DP05_0005E,
+    population_under_18 = DP05_0019E,
+    population_16_and_over = DP05_0020E,
+    population_18_and_over = DP05_0021E,
+    population_65_and_over = DP05_0024E,
+    median_age = DP05_0018E,
+    white_alone = DP05_0037E,
+    black_alone = DP05_0045E, #Shifted from `DP05_0038E`
+    american_indian_alaska_native_alone = DP05_0053E, #Shifted from `DP05_0039E`
+    asian_alone = DP05_0061E, #Shifted from `DP05_0044E` and then again from `DP05_0047E`
+    native_hawaiian_pacific_islander_alone = DP05_0069E, #Shifted from `DP05_0052E` and then again from `DP05_0055E`
+    two_or_more_races = DP05_0035E,
+    hispanic_latino = DP05_0090E, #Shifted from `DP05_0071E` and then again from `DP05_0073E` and one more time from `DP05_0076E`
+    not_hispanic_latino_white_alone = DP05_0096E, # Shifted from `DP05_0077E` and then again from `DP05_0079E` and more time from `DP05_0082E`
+    not_hispanic_latino_black_alone = DP05_0097E, #Shifted from `DP05_0078E` and then again from `DP05_0080E` and more time from `DP05_0083E`
+    total_housing_units = DP05_0105E, #Shifted from `DP05_0086E` and then again from `DP05_0088E` and more time from `DP05_0091E`
+  )
+```
+
+## Verify Column Selection
+
+We confirm that all five dataframes now share identical column names and the expected dimensions before combining them. 
+
+```{r verify-columns}
+identical(names(raw_2019), names(raw_2021)) &
+  identical(names(raw_2021), names(raw_2022)) &
+  identical(names(raw_2022), names(raw_2023)) &
+  identical(names(raw_2023), names(raw_2024))
+```
+
+```{r verify-dimensions}
+tibble(
+  year = c(2019, 2021, 2022, 2023, 2024),
+  rows = c(
+    nrow(df_2019),
+    nrow(df_2021),
+    nrow(df_2022),
+    nrow(df_2023),
+    nrow(df_2024)
+  ),
+  cols = c(
+    ncol(df_2019),
+    ncol(df_2021),
+    ncol(df_2022),
+    ncol(df_2023),
+    ncol(df_2024)
+  )
+)
+
+```
+## Combining into a Single Dataset
+
+With column names aligned across all five years, we stack them into a single longitudinal dataframe using `bind_rows()`. 
+
+```{r combine}
+census_raw <- bind_rows(raw_2019, raw_2021, raw_2022, raw_2023, raw_2024)
+
+glimpse(census_raw)
+
+```
+## Special Value Replacement and Type Conversion
+
+The ACS file use several placeholder values in numeric columns to indicate suppressed or unavailable estimates. Based on the Census Bureau's official table notes, these include `"N"` (insufficient sample cases), `"(X)"` (not applicable), and `"-"` (estimate could not be computed), as well as empty strings and numeric placeholders like `-888888888` and `-666666666`. We replace all of these with `NA` before converting numeric columns from character to double.
+
+The column `geo_id` and `name` are excluded from conversion since they are intentionally character. 
+
+```{r type-conversion}
+non_numeric_cols <- c("geo_id", "name")
+
+cols_to_convert <- census_raw %>%
+  select(-all_of(non_numeric_cols)) %>%
+  select(where(is.character)) %>%
+  names()
+
+census_clean <- census_raw %>%
+  mutate(across(
+    all_of(cols_to_convert),
+    ~ ifelse(. %in% c("N", "(X)", "-", "", "NA", "-888888888", "-666666666"), NA, .)
+  )) %>%
+  mutate(across(
+    all_of(cols_to_convert),
+    as.numeric
+  ))
+```
+
+## Verify Type Conversion
+
+```{r verify-type}
+census_clean %>%
+  select(-geo_id, -name) %>%
+  summarise(across(everything(), class)) %>%
+  pivot_longer(everything(), names_to = "column", values_to = "type")
+```
+
+```{r verify-na-counts}
+census_clean %>%
+  summarise(across(everything(), ~ sum(is.na(.)))) %>%
+  pivot_longer(everything(), names_to = "column", values_to = "na_count") %>%
+  filter(na_count > 0) %>%
+  arrange(desc(na_count))
+```
+The missingness pattern is concentrated in racial composition columns. The 76 missing values shared across all racial breakdown columns represent county-year observations where the Census Bureau suppressed the full racial profile, likely due to small sample sizes. The `not_hispanic_latino_white_alone` and `not_hispanic_latino_black_alone` columns carry additional suppression (180 each), suggesting the Hispanic/non-Hispanic ethnicity breakdown was withheld from a broader set of counties. Core variables including `total_population`, `median_age`, `sex_ratio`, and `total_housing_units` are fully complete across all 4,244 observations. 
+
+## Geographic Parsing
+
+The `name` column cotains values formatted as `"County Name, State Name"`. We split this into two separate columns and immediately normalize `county_name` by stripping geographic suffixes (County, Parish, Borough, Municipality, and Census Area) that vary across records but carry no analytical value. 
+
+```{r geographic-parsing}
+census_clean <- census_clean %>%
+  separate(name, into = c("county_name", "state_name"), sep = ", ") %>%
+  mutate(county_name = str_remove(county_name, " County| Parish| Borough| Municipality| Census Area"))
+```
+
+```{r verify-parsing}
+census_clean %>%
+  select(county_name, state_name) %>%
+  distinct() %>%
+  arrange(state_name) %>%
+  head(15)
+```
+
+## Regional Classification
+
+We assign each state to one of the four U.S. Census Bureau regions and nine divisions using `case_when()`. Puerto Rico is classified separately as a Territory since it falls outside of the standard regional framework.
+
+```{r regional-classification}
+census_clean <- census_clean %>%
+  mutate(
+    region = case_when(
+      state_name %in% c("Connecticut", "Maine", "Massachusetts", "New Hampshire", "Rhode Island", "Vermont", "New Jersey", "New York", "Pennsylvania")
+      ~ "Northeast",
+      state_name %in% c("Illinois", "Indiana", "Michigan", "Ohio", "Wisconsin", "Iowa", "Kansas", "Minnesota", "Missouri", "Nebraska", "North Dakota", "South Dakota") ~ "Midwest",
+      state_name %in% c("Delaware", "Florida", "Georgia", "Maryland", "North Carolina", "South Carolina", "Virginia", "District of Columbia", "West Virginia", "Alabama", "Kentucky", "Mississippi", "Tennessee", "Arkansas", "Louisiana", "Oklahoma", "Texas") ~ "South",
+      state_name %in% c("Arizona", "Colorado", "Idaho", "Montana", "Nevada", "New Mexico", "Utah", "Wyoming", "Alaska", "California", "Hawaii", "Oregon", "Washington") ~ "West",
+      state_name == "Puerto Rico" ~ "Territory",
+      TRUE ~ NA_character_
+    ),
+    division = case_when(
+      state_name %in% c("Connecticut", "Maine", "Massachusetts", "New Hampshire", "Rhode Island", "Vermont") ~ "New England",
+      state_name %in% c("New Jersey", "New York", "Pennsylvania") ~ "Middle Atlantic",
+      state_name %in% c("Illinois", "Indiana", "Michigan", "Ohio", "Wisconsin") ~ "East North Central",
+      state_name %in% c("Iowa", "Kansas", "Minnesota", "Missouri", "Nebraska", "North Dakota", "South Dakota") ~ "West North Central",
+      state_name %in% c("Delaware", "Florida", "Georgia", "Maryland", "North Carolina", "South Carolina", "Virginia", "District of Columbia", "West Virginia") ~ "South Atlantic",
+      state_name %in% c("Alabama", "Kentucky", "Mississippi", "Tennessee") ~ "East South Central",
+      state_name %in% c("Arkansas", "Louisiana", "Oklahoma", "Texas") ~ "West South Central",
+      state_name %in% c("Arizona", "Colorado", "Idaho", "Montana", "Nevada", "New Mexico", "Utah", "Wyoming") ~ "Mountain",
+      state_name %in% c("Alaska", "California", "Hawaii", "Oregon", "Washington") ~ "Pacific",
+      state_name == "Puerto Rico" ~ "Territory",
+      TRUE ~ NA_character_
+    )
+  )
+```
+
+```{r verify-regional}
+census_clean %>%
+  distinct(state_name, region, division) %>%
+  arrange(region, division, state_name)
+```
+
