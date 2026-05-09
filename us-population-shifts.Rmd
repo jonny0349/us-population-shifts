@@ -1,0 +1,110 @@
+---
+title: "The Changing Face of America"
+subtitle: "Exploratory Analysis of County-Level Demographic Shifts (2019-2024)"
+author: "Jonatan Tobón González"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    df_print: paged
+---
+
+# Setup
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+
+```{r libraries, eval=FALSE}
+install.packages("tidyverse")
+install.packages("here")
+install.packages("scales")
+```
+
+
+```{r load-libraries}
+library(tidyverse)
+library(here)
+library(scales)
+```
+
+# Data Acquisition
+
+The five datasets used in this analysis come form the U.S. Census Bureau's American Community Survey (ACS) 1-Year Demographic Profile table DP05, covering county-level estimates for 2019, 2021, 2022, 2023, and 2024. The year 2020 is absent because the Census Bureau suspended data collection during the COVID-19 pandemic. 
+
+Each file is read with `col_types = cols(.default = "c")` to force all columns to character type on load. This is intentional because the ACS file contain suppresion codes like `"N"`, `"(x)"`, and `"-"` in numeric columns that would be silently lost if R attempted type inference at read time. Those values are handled explictily in the cleaning phase.
+
+```{r load-data}
+df_2019 <- read_csv(
+  here("data", "raw", "2019", "ACSDP1Y2019.DP05-Data.CSV"),
+  col_types = cols(.default = "c"),
+  show_col_types = FALSE
+)
+
+df_2021 <- read_csv(
+  here("data", "raw", "2021", "ACSDP1Y2021.DP05-Data.CSV"),
+  col_types = cols(.default = "c"),
+  show_col_types = FALSE
+)
+
+df_2022 <- read_csv(
+  here("data", "raw", "2022", "ACSDP1Y2022.DP05-Data.CSV"),
+  col_types = cols(.default = "c"),
+  show_col_types = FALSE
+)
+
+df_2023 <- read_csv(
+  here("data", "raw", "2023", "ACSDP1Y2023.DP05-Data.CSV"),
+  col_types = cols(.default = "c"),
+  show_col_types = FALSE
+)
+
+df_2024 <- read_csv(
+  here("data", "raw", "2024", "ACSDP1Y2024.DP05-Data.CSV"),
+  col_types = cols(.default = "c"),
+  show_col_types = FALSE
+)
+```
+
+# Initial Exploration
+
+Before making any changes to the raw files, we take a first look at the structure and contents of each dataset. This step helps us understand the shape of the data, confirm that all files loaded correctly, and identify anything unexpected before we start cleaning.
+
+## Dimensions
+
+```{r dimesions}
+tibble(
+  year = c(2019, 2021, 2022, 2023, 2024),
+  rows = c(
+    nrow(df_2019),
+    nrow(df_2021),
+    nrow(df_2022),
+    nrow(df_2023),
+    nrow(df_2024)
+  ),
+  cols = c(
+    ncol(df_2019),
+    ncol(df_2021),
+    ncol(df_2022),
+    ncol(df_2023),
+    ncol(df_2024)
+  )
+)
+```
+
+The row count increases each year from 841 to 862, reflecting ACS 1-Year survey's population threshold requirement; only counties with 65,000 or more residents are included, and more counties cross that threshold over time. The column count grows more sharply, from 359 in 2019 to 435 in 2024, due to structural changes the Census Bureau made ot its race and ethnicity question following the 2020 Census. This means we cannot simply select the same column codes across all five years and will need to map each variable to its correct code per year.
+
+## Structure
+
+```{r structure}
+glimpse(df_2019)
+```
+
+## The Label Row
+
+```{r label-row}
+df_2019[1, 1:5]
+```
+Every DP05 export includes a second row containing verbose column description such as `"Estimate!!SEX AND AGE!!Total Population"` rather than actual data values. This row must be removed before any transformation or combination step, otherwise it would be treated as a data observation. 
