@@ -729,3 +729,119 @@ Coverage is stable across all five years with modest growth in most regions. The
 The Territory remains flat at 11 municipios across all five years, as Puerto Rico's administrative geography is fixed. This consistency is useful analytically, any changes we observe in Territory-level figures over time reflect genuine demographic shifts rather than changes in coverage.
 
 This coverage table serves as an important reference for interpreting regional comparisons throughout the rest of the analysis. Regions with more counties will naturally produce more stable regional aggregates, while the Territory's small count means its regional figures are more sensitive to individual municipio-level changes.
+
+# Derived Variables
+
+With the dataset cleaned and explored, we now calculate the variables needed for deeper analysis. Each derived variable is validated immediately after creation before moving to the next. 
+
+## Senior Population Share
+
+Senior population share measures the percentage of a county's total population that is 65 years or older. Counties are then classified into three tiers based on that share: Aging (>= 20%), Transitional (15-19.9%), and Young (<15%).
+
+```{r senior-pop-share}
+census_clean <- census_clean %>%
+  mutate(
+    senior_pop_share = (population_65_and_over / total_population) * 100, 
+    senior_tier = case_when(
+      senior_pop_share >= 20 ~ "Aging",
+      senior_pop_share >= 15 ~ "Transitional",
+      TRUE ~ "Young"
+    )
+  )
+```
+
+```{r validate-senior}
+census_clean %>%
+  select(county_name, state_name, survey_year, total_population, population_65_and_over,senior_pop_share, senior_tier) %>%
+  arrange(desc(senior_pop_share)) %>%
+  head(10)
+```
+
+```{r senior-tier-distribution}
+census_clean %>%
+  count(senior_tier) %>%
+  mutate(pct = round(n / sum(n) * 100, 1))
+```
+
+Sumter County, Florida appears in all five survey years at the top of the senior share ranking, with values consistently above 56%, meaning more than half of its population is 65 or older in every year of the study. Charlotte County, Florida follows at roughly 40% across all years, another established retirement destination on Florida's Gulf Coast. The dominance of Florida counties at the top of this ranking is consistent with decades of retiree migration to the state and will appear as a recurring pattern throughout the age-related analyses. 
+
+The tier distribution splits into roughly half Transitional (50.8%), a quarter Aging (25.7%), and a quarter Young (23.6%). This means that as of the years covered in this study, one in four county-year observations already meets the Aging threshold of 20% or more seniors, a striking share that reflects the broader national trend of population aging driven by the Baby Boomer generation moving into retirement age.
+
+## Working Age and Youth Population Share
+
+Working age population share measures the percentage of the total population between 18 and 64 years, derived by substracting the 65-and-over population from the 18-and-over population. Youth population share measures the percentage under 18. 
+
+```{r working-youth-share}
+census_clean <- census_clean %>%
+  mutate(
+    working_age_pop_share = ((population_18_and_over - population_65_and_over) / total_population) * 100,
+    youth_pop_share = (population_under_18 / total_population) * 100
+  )
+```
+
+```{r validate-working-youth}
+census_clean %>%
+  select(county_name, state_name, survey_year, total_population, senior_pop_share, working_age_pop_share, youth_pop_share) %>%
+  mutate(check_sum = round(senior_pop_share + working_age_pop_share + youth_pop_share, 1)) %>%
+  arrange(desc(check_sum)) %>%
+  head(10)
+```
+
+The validation check confirms that senior, working age, and youth population shares sum to exactly 100 for every county-year observation, meaning the three variables together account for the full population with no gaps or overlaps. Working age share dominates across all counties as expected, typically ranging between 57% and 66%, while senior and youth shares compete for the remaining portions in ways that reflect each county's demographic character.
+
+## Population Change Tier
+
+To classify counties by population change we need to compare each county's 2019 and 2024 total population directly. We pivot to wide format so both years sit side by side, calculate the percentage change, classify into tiers, and then join the result back to `census_clean`.
+
+```{r pop-change-tier}
+pop_wide <- census_clean %>%
+  filter(survey_year %in% c(2019, 2024)) %>%
+  select(geo_id, survey_year, total_population) %>%
+  pivot_wider(names_from = survey_year, values_from = total_population) %>%
+  rename(pop_2019 = `2019`, pop_2024 = `2024`) %>%
+  drop_na() %>%
+  mutate(
+    pct_change = ((pop_2024 - pop_2019) / pop_2019) * 100,
+    pop_change_tier = case_when(
+      pct_change > 10 ~ "High Growth",
+      pct_change >= 2 ~ "Moderate Growth",
+      pct_change >= -2 ~ "Stable",
+      TRUE ~ "Decline"
+    )
+  )
+```
+
+```{r join-pop-change}
+census_clean <- census_clean %>%
+  left_join(
+    pop_wide %>% select(geo_id, pct_change, pop_change_tier),
+    by = "geo_id"
+  )
+```
+
+```{r validate-pop-change}
+census_clean %>%
+  filter(survey_year == 2024) %>%
+  count(pop_change_tier) %>%
+  mutate(pct = round(n / sum(n) * 100, 1)) %>%
+  arrange(desc(n))
+```
+
+```{r pop-change-extremes}
+pop_wide %>%
+  left_join(
+    census_clean %>%
+      filter(survey_year == 2024) %>%
+      select(geo_id, county_name, state_name),
+    by = "geo_id"
+  ) %>%
+  select(county_name, state_name, pop_2019, pop_2024, pct_change, pop_change_tier) %>%
+  arrange(desc(pct_change)) %>%
+  slice(c(1:5, (nrow(.)-4):nrow(.)))
+```
+
+The tier distribution shows that nearly half of all counties (48.8%) fall into Moderate Growth, with Stable counties accounting for another 25.9%. Only 8% of counties show outright Decline, though that still represents 69 county-year observations where population contracted by more than 2% over the five year window. The 35 NA values represent counties that appear in one survey year but not the other (typically smaller counties that crossed the 65,000 threshold after 2019 or fell below it by 2024), and cannot be assigned a change tier. 
+
+The fastest growing counties are concentrated entirely in Texas, led by Kaufman County at 45.3% growth between 2019 and 2024. Rockwall, Liberty, Bastrop, and Comal counties round out the top five, all exurban counties in the Dallas-Fort Worth and Austin metropolitan areas absorbing population spillover from those rapidly expanding metros. 
+
+The steepest declines tell a different story. Apache County, Arizona (-9.9%) is a large rural county within the Navajo Nation that has faced sustained outmigration.Robeson County, North Carolina (-9.2%) and Hinds County, Mississippi (-8.6%) are majority-minority counties in the rural South experiencing long-term population loss. Orleans Parish, Louisiana (-7.0%) continues its slow recovery from the population displacement caused by Hurricane Katrina nearly two decades ago. Toa Alta Municipio in Puerto Rico (-8.2%) reflects the broader outmigration from the island that has accelerated since Hurricane Maria in 2017.
