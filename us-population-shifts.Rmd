@@ -571,3 +571,54 @@ census_clean %>%
   head(5)
 ```
 Sumter County, Florida emerges as the clear outlier at a median age of 68.0 with a total population of 154,693. This is not a data quality issue, Sumter County is home to The Villages, one of the largest planned retirement communities in the United States, and its age structure reflects that reality. This county will appear repeatedly as an outlier in age-related analyses throughout this notebook and should be interpreted in that context rather than treated as an anomaly to be removed. 
+
+## Sex Ratio Distributions
+
+Sex ration is expressed as the number of males per 100 females. A perfectly balanced county would show a value of 100. We first look at the overall distribution, then identify where the extremes are concentrated. 
+
+```{r sex-ratio-distributions}
+census_clean %>%
+  filter(survey_year == 2024) %>%
+  ggplot(aes(x = sex_ratio))+
+  geom_histogram(bins = 40, fill = "steelblue", color = "white")+
+  geom_vline(xintercept = 100, linetype = "dashed", color = "gray40")+
+  labs(
+    title = "Distribution of County Sex Ratios (2024)",
+    subtitle = "Dashed line marks a balanced ratio of 100 males per 100 females",
+    x = "Sex Ratio (Males per 100 Females",
+    y = "Number of Counties",
+    caption = "Source: ACS DP05 1-Year Estimates"
+  )
+```
+The distribution of county sex ratios is approximately normal and centered just below 100, meaning the typical county has slightly more females than males. The median of 97.8 and mean of 97.99 are nearly identical, confirming the distribution is symmetric for the majority of counties. The dashed line at 100 falls near the peak but slightly to the right, making the female-heavy skew of most counties visible.
+
+```{r sex-ratio-summary}
+census_clean %>%
+  filter(survey_year == 2024) %>%
+  summarise(
+    min = min(sex_ratio, na.rm = TRUE),
+    q25 = quantile(sex_ratio, 0.25, na.rm = TRUE),
+    median = median(sex_ratio, na.rm = TRUE),
+    mean = mean(sex_ratio, na.rm = TRUE),
+    q75 = quantile(sex_ratio, 0.75, na.rm = TRUE),
+    max = max(sex_ratio, na.rm = TRUE)
+  )
+```
+
+```{r sex-ratio-outliers}
+census_clean %>%
+  filter(survey_year == 2024) %>%
+  mutate(
+    q1 = quantile(sex_ratio, 0.25, na.rm = TRUE),
+    q3 = quantile(sex_ratio, 0.75, na.rm = TRUE),
+    iqr = q3 - q1,
+    lower = q1 - 1.5 * iqr,
+    upper = q3 + 1.5 * iqr
+  ) %>%
+  filter(sex_ratio < lower | sex_ratio > upper) %>%
+  select(county_name, state_name, region, sex_ratio, total_population) %>%
+  arrange(desc(sex_ratio))
+```
+The 34 outlier counties identified by the 1.5 * IQR rule fall into two distinct and interpretable groups. The high-ratio outliers (led by Walker County, Texas (134.3), Fairbanks North Start Borough, Alaska (126.5), Kings County, California (124.2), and Onslow County, North Carolina (121.8)) are almost entirely explained by institutional population. Walker and Kings counties host large state and federal prisons, Fairbanks North Start and Onslow are home to major military installations. These are not demographic anomalies, they are accurate reflections of the population living in those counties at the time of the survey. 
+
+The low-ratio outliers tell a different story. Three Puerto Rico municipios appear at the bottom of the distribution (82.6-85.0), consistent with the broader pattern of male outmigration from the island that has accelerated since Hurricane Maria in 2017. Baltimore City (86.4) and several majority-Black counties in the South follow, a patter that research has consitently linked to higher rates of male incareceration and premature mortality in those communities. Both the high and low extremes underscore that sex ratio outliers are rarely random, they reflect structural conditions worth investigating further.
