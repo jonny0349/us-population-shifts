@@ -1,13 +1,15 @@
 ---
 title: "The Changing Face of America"
-subtitle: "Exploratory Analysis of County-Level Demographic Shifts (2019-2024)"
 author: "Jonatan Tobón González"
 date: "`r Sys.Date()`"
 output:
+  word_document:
+    toc: true
   html_document:
     toc: true
     toc_float: true
     df_print: paged
+subtitle: "Exploratory Analysis of County-Level Demographic Shifts (2019-2024)"
 ---
 
 # Setup
@@ -28,6 +30,18 @@ install.packages("scales")
 library(tidyverse)
 library(here)
 library(scales)
+```
+
+```{r plot-theme}
+theme_acs <- theme_minimal()+
+  theme(
+    plot.title = element_text(face = "bold"),
+    plot.subtitle = element_text(color = "gray40"),
+    plot.caption = element_text(color = "gray50"),
+    panel.grid = element_blank()
+  )
+
+theme_set(theme_acs)
 ```
 
 # Data Acquisition
@@ -445,3 +459,115 @@ census_clean %>%
   arrange(region, division, state_name)
 ```
 
+# Exploratory Data Analysis
+
+Before calculating any derived variables, we explore the combined dataset to understand its structure, distributions, and patterns. Each exploration informs the decisions we make in the next phase.
+
+## Population Distribution
+
+County population in this dataset are highly skewed (a small number of very large counties coexist with a large number of small ones). We look at the overall distribution first, then break it down by region. 
+
+```{r population-distribution}
+census_clean %>%
+  filter(survey_year == 2024) %>%
+  ggplot(aes(x = total_population))+
+  geom_histogram(bins = 50, fill = "steelblue", color = "white")+
+  scale_x_continuous(labels = comma)+
+  labs(
+    title = "Distribution of County Population (2024)",
+    subtitle = "Each bin represents a range of county population sizes",
+    x = "Total Population",
+    y = "Number of Counties",
+    caption = "Source: ACS DP05 1-Year Estimates"
+  )
+```
+The raw distribution makes the skew immediately visible. The vast majority of counties in the dataset cluster below 500,000 residents, while a handful of very large counties (Los Angeles, Cook, Harris) stretch the x-axis out to nearly 10 million. This kind of right skew is typical of county population data in the United States and has an important implication for analysis: any regional average that treats counties as equal units will be dominated by the largest ones.
+
+```{r population-log}
+census_clean %>%
+  filter(survey_year == 2024) %>%
+  ggplot(aes(x = total_population))+
+  geom_histogram(bins = 50, fill = "steelblue", color = "white")+
+  scale_x_log10(labels = comma)+
+  labs(
+    title = "Distribution of County Population on Log Scale (2024)",
+    subtitle = "Log scale reveals the full range of county sizes more clearly",
+    x = "Total Population (Log Scale)",
+    y = "Number of Counties",
+    caption = "Source: ACS DP05 1-Year Estimates"
+  )
+```
+On the log scale the distribution becomes much more informative. County populations are spread fairly continuously from roughly 65,000 (The ACS 1-Year threshold) up through the millions, with the bulk of counties falling between 100,000 and 500,000 residents. The log scale will be the appropriate choice whenever we plot population on an axis going forward. 
+
+```{r population-summary}
+census_clean %>%
+  filter(survey_year == 2024) %>%
+  summarise(
+    min = min(total_population, na.rm = TRUE),
+    q25 = quantile(total_population, 0.25, na.rm = TRUE),
+    median = median(total_population, na.rm = TRUE),
+    mean = mean(total_population, na.rm = TRUE),
+    q75 = quantile(total_population, 0.75, na.rm = TRUE),
+    max = max(total_population, na.rm = TRUE)
+  )
+
+```
+The summary confirms the skew numerically. The median county population in 2024 is 163,839 while the mean is 340,954 (nearly double). This gap between median and mean is the fingerprint of a right-skewed distribution and tells us that a small number of very large counties are pulling the average upward significantly. 
+
+## Median Age Distribution
+
+```{r age-distribution}
+census_clean %>%
+  filter(survey_year == 2024) %>%
+  ggplot(aes(x = median_age))+
+  geom_histogram(bins = 40, fill = "steelblue", color = "white")+
+  labs(
+    title = "Distribution of County Median Age (2024)",
+    subtitle = "Each bin represents a range of median ages across counties",
+    x = "Median Age",
+    y = "Number of Counties",
+    caption = "Source: ACS DP05 1-Year Estimates"
+  )
+```
+The overall distribution of county median age is approximately normal and centered around 40 to 42 years, with a right tail extending toward counties with median age above 55. These high-age outliers likely represent retirement communities or rural counties experiencing sustained outmigration of younger residents.
+
+```{r age-by-region}
+census_clean %>%
+  filter(survey_year == 2024) %>%
+  ggplot(aes(x = median_age, fill = region))+
+  geom_density(alpha = 0.4)+
+  labs(
+    title = "Median Age Distribution by Region (2024)",
+    subtitle = "Density curves show how age distributions differ across Census regions",
+    x = "Median Age",
+    y = "Density",
+    fill = "Region",
+    caption = "Source: ACS DP05 1-Year Estimates"
+  )
+```
+The regional density plot reveals a pattern that raw averages would obscure. Puerto Rico stands apart with a narrow, sharply peaked distribution centered around 47 to 48 years (its counties cluster tightly around an older median age than any continental region and show far less internal variation). The continental regions overlap considerably in the 37 to 44 range, though the Northeast skews slightly older and the South and West show broader, flatter distributions suggesting more internal diversity in age structure.
+
+```{r age-summary-by-region}
+census_clean %>%
+  filter(survey_year == 2024) %>%
+  group_by(region) %>%
+  summarise(
+    min = min(median_age, na.rm = TRUE),
+    q25 = quantile(median_age, 0.25, na.rm = TRUE),
+    median = median(median_age, na.rm = TRUE),
+    mean = mean(median_age, na.rm = TRUE),
+    q75 = quantile(median_age, 0.75, na.rm = TRUE),
+    max = max(median_age, na.rm = TRUE)
+  ) %>%
+  arrange(desc(median))
+```
+The summary confirms Puerto Rico as the olderst region by median (44.9) despite being a single territory rather than a collection of diverse states. Among continental regions, the Northeast leads at 41.9, while the South and West both sits at 39.0. The maximum of 68.0 in the South is a notable outlier worth identifying. 
+
+```{r age-outlier}
+census_clean %>%
+  filter(survey_year == 2024, region == "South") %>%
+  arrange(desc(median_age)) %>%
+  select(county_name, state_name, median_age, total_population) %>%
+  head(5)
+```
+Sumter County, Florida emerges as the clear outlier at a median age of 68.0 with a total population of 154,693. This is not a data quality issue, Sumter County is home to The Villages, one of the largest planned retirement communities in the United States, and its age structure reflects that reality. This county will appear repeatedly as an outlier in age-related analyses throughout this notebook and should be interpreted in that context rather than treated as an anomaly to be removed. 
