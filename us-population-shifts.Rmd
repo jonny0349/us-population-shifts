@@ -481,6 +481,7 @@ census_clean %>%
     caption = "Source: ACS DP05 1-Year Estimates"
   )
 ```
+
 The raw distribution makes the skew immediately visible. The vast majority of counties in the dataset cluster below 500,000 residents, while a handful of very large counties (Los Angeles, Cook, Harris) stretch the x-axis out to nearly 10 million. This kind of right skew is typical of county population data in the United States and has an important implication for analysis: any regional average that treats counties as equal units will be dominated by the largest ones.
 
 ```{r population-log}
@@ -497,6 +498,7 @@ census_clean %>%
     caption = "Source: ACS DP05 1-Year Estimates"
   )
 ```
+
 On the log scale the distribution becomes much more informative. County populations are spread fairly continuously from roughly 65,000 (The ACS 1-Year threshold) up through the millions, with the bulk of counties falling between 100,000 and 500,000 residents. The log scale will be the appropriate choice whenever we plot population on an axis going forward. 
 
 ```{r population-summary}
@@ -512,6 +514,7 @@ census_clean %>%
   )
 
 ```
+
 The summary confirms the skew numerically. The median county population in 2024 is 163,839 while the mean is 340,954 (nearly double). This gap between median and mean is the fingerprint of a right-skewed distribution and tells us that a small number of very large counties are pulling the average upward significantly. 
 
 ## Median Age Distribution
@@ -529,6 +532,7 @@ census_clean %>%
     caption = "Source: ACS DP05 1-Year Estimates"
   )
 ```
+
 The overall distribution of county median age is approximately normal and centered around 40 to 42 years, with a right tail extending toward counties with median age above 55. These high-age outliers likely represent retirement communities or rural counties experiencing sustained outmigration of younger residents.
 
 ```{r age-by-region}
@@ -545,6 +549,7 @@ census_clean %>%
     caption = "Source: ACS DP05 1-Year Estimates"
   )
 ```
+
 The regional density plot reveals a pattern that raw averages would obscure. Puerto Rico stands apart with a narrow, sharply peaked distribution centered around 47 to 48 years (its counties cluster tightly around an older median age than any continental region and show far less internal variation). The continental regions overlap considerably in the 37 to 44 range, though the Northeast skews slightly older and the South and West show broader, flatter distributions suggesting more internal diversity in age structure.
 
 ```{r age-summary-by-region}
@@ -561,6 +566,7 @@ census_clean %>%
   ) %>%
   arrange(desc(median))
 ```
+
 The summary confirms Puerto Rico as the olderst region by median (44.9) despite being a single territory rather than a collection of diverse states. Among continental regions, the Northeast leads at 41.9, while the South and West both sits at 39.0. The maximum of 68.0 in the South is a notable outlier worth identifying. 
 
 ```{r age-outlier}
@@ -570,6 +576,7 @@ census_clean %>%
   select(county_name, state_name, median_age, total_population) %>%
   head(5)
 ```
+
 Sumter County, Florida emerges as the clear outlier at a median age of 68.0 with a total population of 154,693. This is not a data quality issue, Sumter County is home to The Villages, one of the largest planned retirement communities in the United States, and its age structure reflects that reality. This county will appear repeatedly as an outlier in age-related analyses throughout this notebook and should be interpreted in that context rather than treated as an anomaly to be removed. 
 
 ## Sex Ratio Distributions
@@ -590,6 +597,7 @@ census_clean %>%
     caption = "Source: ACS DP05 1-Year Estimates"
   )
 ```
+
 The distribution of county sex ratios is approximately normal and centered just below 100, meaning the typical county has slightly more females than males. The median of 97.8 and mean of 97.99 are nearly identical, confirming the distribution is symmetric for the majority of counties. The dashed line at 100 falls near the peak but slightly to the right, making the female-heavy skew of most counties visible.
 
 ```{r sex-ratio-summary}
@@ -619,6 +627,7 @@ census_clean %>%
   select(county_name, state_name, region, sex_ratio, total_population) %>%
   arrange(desc(sex_ratio))
 ```
+
 The 34 outlier counties identified by the 1.5 * IQR rule fall into two distinct and interpretable groups. The high-ratio outliers (led by Walker County, Texas (134.3), Fairbanks North Start Borough, Alaska (126.5), Kings County, California (124.2), and Onslow County, North Carolina (121.8)) are almost entirely explained by institutional population. Walker and Kings counties host large state and federal prisons, Fairbanks North Start and Onslow are home to major military installations. These are not demographic anomalies, they are accurate reflections of the population living in those counties at the time of the survey. 
 
 The low-ratio outliers tell a different story. Three Puerto Rico municipios appear at the bottom of the distribution (82.6-85.0), consistent with the broader pattern of male outmigration from the island that has accelerated since Hurricane Maria in 2017. Baltimore City (86.4) and several majority-Black counties in the South follow, a patter that research has consitently linked to higher rates of male incareceration and premature mortality in those communities. Both the high and low extremes underscore that sex ratio outliers are rarely random, they reflect structural conditions worth investigating further.
@@ -647,6 +656,7 @@ census_clean %>%
     caption = "Source: ACS DP05 1-Year Estimates"
   )
 ```
+
 Two patterns emerge clearly from this exploration. First, suppression is heavily concentrated in 2019. The by-year chart shows roughly 60 missing values in `white_alone` and `two_or_more_races` in 2019, dropping sharply to single digits in every subsequent year. This is directly linked to the Census Bureau's redesign of the race and ethnicity question following the 2020 Census, the updated question captured racial identity more completely, reducing the number of records where racial composition could not be reported.
 
 ```{r missing-by-region}
@@ -667,6 +677,7 @@ census_clean %>%
     caption = "Source: ACS DP05 1-Year Estimates"
   )
 ```
+
 Second, the South accounts for the largest share of suppression by region, with approximately 48 missing values across racial columns, roughly half the total. This is proportional rather than structural: the South simply contains more counties than any other region (355 to 368 depending on the year), so it naturally accumulates more instances of suppression even when its suppression rate is lower than other regions. 
 
 ```{r missing-count-tables}
@@ -680,4 +691,41 @@ census_clean %>%
   ) %>%
   arrange(desc(pct_missing))
 ```
+
 The percent table confirms that suppression rates are low across the board. The highest rate observed is 18.2% for the Territory in 2019, which represents just 2 of 11 Puerto Rico municipios, a small absolute count that looks large only because the Territory has so few counties. Among continental regions, the South in 2019 at 9.9% is the only case approaching a meaningful suppression rate, and it drops to under 1% in every subsequent year. Given this pattern, missingness in this dataset is not randomly distributed, it is concentrated in 2019 and disproportionately affects the South, but its overall scale is small enough that it will not materially affect regional or longitudinal analysis. 
+
+## County Coverage by Year and Region
+
+The ACS 1-Year survey only covers counties with populations above 65,000. As the U.S. population grows and more counties cross that threshold, coverage expands over time. here we look at how many counties are represented in each region per year to understand the shape of our dataset before moving into analysis. 
+
+```{r coverage-by-year-region}
+census_clean %>%
+  group_by(survey_year, region) %>%
+  summarise(county_count = n(), .groups = "drop") %>%
+  ggplot(aes(x = survey_year, y = county_count, color = region))+
+  geom_line(linewidth = 1)+
+  geom_point(size = 2)+
+  scale_x_continuous(breaks = c(2019, 2021, 2022, 2023, 2024)) +
+  labs(
+    title = "County Coverage by Region and Year",
+    subtitle = "Number of counties included in the ACS 1-year survey per region",
+    x = "Survey Year",
+    y = "Number of Counties",
+    color = "Region",
+    caption = "Source: ACS DP05 1-Year Estimates"
+  )
+```
+
+```{r coverage-table}
+census_clean %>%
+  group_by(survey_year, region) %>%
+  summarise(county_count = n(), .groups = "drop") %>%
+  pivot_wider(names_from = survey_year, values_from = county_count) %>%
+  arrange(region)
+```
+
+Coverage is stable across all five years with modest growth in most regions. The South is the largest region throughout, growing from 355 to 368 counties between 2019 and 2024 and accounting for roughly 43% of all county-year observations in the dataset. The Midwest and West hold relatively steady while the Northeast shows a slight dip in 2021, dropping from 137 to 135 counties, before recovering to 138 by 2023. This temporary contraction likely reflects a small number of counties falling below the 65,000 population threshold during the pandemic, when urban population loss was documented in several Northeastern metros. 
+
+The Territory remains flat at 11 municipios across all five years, as Puerto Rico's administrative geography is fixed. This consistency is useful analytically, any changes we observe in Territory-level figures over time reflect genuine demographic shifts rather than changes in coverage.
+
+This coverage table serves as an important reference for interpreting regional comparisons throughout the rest of the analysis. Regions with more counties will naturally produce more stable regional aggregates, while the Territory's small count means its regional figures are more sensitive to individual municipio-level changes.
