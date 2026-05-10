@@ -622,3 +622,62 @@ census_clean %>%
 The 34 outlier counties identified by the 1.5 * IQR rule fall into two distinct and interpretable groups. The high-ratio outliers (led by Walker County, Texas (134.3), Fairbanks North Start Borough, Alaska (126.5), Kings County, California (124.2), and Onslow County, North Carolina (121.8)) are almost entirely explained by institutional population. Walker and Kings counties host large state and federal prisons, Fairbanks North Start and Onslow are home to major military installations. These are not demographic anomalies, they are accurate reflections of the population living in those counties at the time of the survey. 
 
 The low-ratio outliers tell a different story. Three Puerto Rico municipios appear at the bottom of the distribution (82.6-85.0), consistent with the broader pattern of male outmigration from the island that has accelerated since Hurricane Maria in 2017. Baltimore City (86.4) and several majority-Black counties in the South follow, a patter that research has consitently linked to higher rates of male incareceration and premature mortality in those communities. Both the high and low extremes underscore that sex ratio outliers are rarely random, they reflect structural conditions worth investigating further.
+
+## Missing Data by Region and Year
+
+Earlier we identified that missingness is concentrated in racial composition columns. Here we explore whether that suppression is randomly distributed across regions and years or whether it follows a pattern.
+
+```{r missing-by-year}
+census_clean %>%
+  group_by(survey_year) %>%
+  summarise(across(
+    c(white_alone, black_alone, asian_alone, native_hawaiian_pacific_islander_alone, american_indian_alaska_native_alone, two_or_more_races), ~ sum(is.na(.))
+  )) %>%
+  pivot_longer(-survey_year, names_to = "column", values_to = "na_count") %>%
+  ggplot(aes(x = survey_year, y = na_count, color = column))+
+  geom_line(linewidth = 1)+
+  geom_point(size = 2)+
+  scale_x_continuous(breaks = c(2019, 2021, 2022, 2023, 2024))+
+  labs(
+    title = "Missing Values in Racial Composition Columns by Year",
+    subtitle = "Tracking Census suppression patterns across five survey years",
+    x = "Survey Year",
+    y = "Number of Missing Values",
+    color = "Column",
+    caption = "Source: ACS DP05 1-Year Estimates"
+  )
+```
+Two patterns emerge clearly from this exploration. First, suppression is heavily concentrated in 2019. The by-year chart shows roughly 60 missing values in `white_alone` and `two_or_more_races` in 2019, dropping sharply to single digits in every subsequent year. This is directly linked to the Census Bureau's redesign of the race and ethnicity question following the 2020 Census, the updated question captured racial identity more completely, reducing the number of records where racial composition could not be reported.
+
+```{r missing-by-region}
+census_clean %>%
+  group_by(region) %>%
+  summarise(across(
+    c(white_alone, black_alone, asian_alone, native_hawaiian_pacific_islander_alone, american_indian_alaska_native_alone, two_or_more_races), ~ sum(is.na(.))
+  )) %>%
+  pivot_longer(-region, names_to = "column", values_to = "na_count") %>%
+  ggplot(aes(x = region, y = na_count, fill = column))+
+  geom_col(position = "dodge")+
+  labs(
+    title = "Missing Values in Racial Composition Columns by Region",
+    subtitle = "Suppression patterns across Census regions",
+    x = "Region",
+    y = "Number of Missing Values",
+    fill = "Column",
+    caption = "Source: ACS DP05 1-Year Estimates"
+  )
+```
+Second, the South accounts for the largest share of suppression by region, with approximately 48 missing values across racial columns, roughly half the total. This is proportional rather than structural: the South simply contains more counties than any other region (355 to 368 depending on the year), so it naturally accumulates more instances of suppression even when its suppression rate is lower than other regions. 
+
+```{r missing-count-tables}
+census_clean %>%
+  group_by(region, survey_year) %>%
+  summarise(
+    missing_any_race = sum(is.na(white_alone) | is.na(black_alone) | is.na(asian_alone) | is.na(two_or_more_races)),
+    total_counties = n(),
+    pct_missing = round((missing_any_race / total_counties) * 100, 1),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(pct_missing))
+```
+The percent table confirms that suppression rates are low across the board. The highest rate observed is 18.2% for the Territory in 2019, which represents just 2 of 11 Puerto Rico municipios, a small absolute count that looks large only because the Territory has so few counties. Among continental regions, the South in 2019 at 9.9% is the only case approaching a meaningful suppression rate, and it drops to under 1% in every subsequent year. Given this pattern, missingness in this dataset is not randomly distributed, it is concentrated in 2019 and disproportionately affects the South, but its overall scale is small enough that it will not materially affect regional or longitudinal analysis. 
