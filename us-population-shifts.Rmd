@@ -924,3 +924,58 @@ The quantile cutoffs fall at 0.322 for the 33rd percentile and 0.516 for the 66t
 The most diverse counties in 2024 are led by three Puerto Rico Municipios (Toa Baja, Mayagüez, and Bayamón) with index scores above 0.86. This result is initially surprising given Puerto Rico's reputation as a culturally homogeneous island, but refelects how the Census race question captures the population there: a large share of respondents identify across multiple racial categories simultaneously, producing high diversity scores under the Herfindahl formula. Among continental counties, Merced County California and the Bronx in New York round out the top five, both long-established as among the most racially mixed counties in the country. 
 
 The least diverse counties are uniformly small, predominantly white rural counties concentrated in the Northeast and Midwest. Armstrong County Pennsylvania (0.106), Geauga County Ohio (0.116), Crow Wing County Minnesota (0.120), Franklin County Missouri (0.124), and Belknap County New Hampshire (0.124) all have populations where a single racial group accounts for the overwhelming majority of residents, leaving little distributional spread for the index to capture.
+
+## Housing Population Ratio
+
+The housing to population ratio divides total housing units by total population to produce a county-level proxy for housing availability. Counties in the top 10% of this ratio have relatively more housing units per resident, while counties in the bottom 10% face potential housing scarcity relative to their population. 
+
+```{r housing-ratio}
+census_clean <- census_clean %>%
+  mutate(
+    housing_to_pop_ratio = total_housing_units/total_population,
+    housing_ratio_flag = case_when(
+      is.na(housing_to_pop_ratio) ~ NA_character_,
+      housing_to_pop_ratio >= quantile(housing_to_pop_ratio, 0.90, na.rm = TRUE) ~ "Top 10%",
+      housing_to_pop_ratio <= quantile(housing_to_pop_ratio, 0.10, na.rm = TRUE) ~ "Bottom 10%",
+      TRUE ~ "Typical"
+    )
+  )
+```
+
+```{r validate-housing-ratio}
+census_clean %>%
+  summarise(
+    min = min(housing_to_pop_ratio, na.rm = TRUE),
+    q10 = quantile(housing_to_pop_ratio, 0.10, na.rm = TRUE),
+    median = median(housing_to_pop_ratio, na.rm = TRUE),
+    mean = mean(housing_to_pop_ratio, na.rm = TRUE),
+    q90 = quantile(housing_to_pop_ratio, 0.90, na.rm = TRUE),
+    max = max(housing_to_pop_ratio, na.rm = TRUE)
+  )
+```
+
+```{r housing-ratio-flags}
+census_clean %>%
+  count(housing_ratio_flag) %>%
+  mutate(pct = round(n/sum(n) * 100, 1))
+```
+
+```{r housing-ratio-extremes}
+bind_rows(
+  census_clean %>%
+    filter(survey_year == 2024) %>%
+    arrange(desc(housing_to_pop_ratio)) %>%
+    head(5),
+  census_clean %>%
+    filter(survey_year == 2024) %>%
+    arrange(housing_to_pop_ratio) %>%
+    head(5)
+) %>%
+  select(county_name, state_name, total_population, total_housing_units, housing_to_pop_ratio, housing_ratio_flag)
+```
+
+The housing to population ratio ranges from 0.287 to 1.042, with a median of 0.434 meaning the typical county has roughly one housing unit for every 2.3 residents. The flag distribution splits cleanly into 10% Top, 10% Bottom, and 80% Typical as intended.
+
+The top 10% counties with the highest ratios are dominated by coastal resort and vacation destinations. Cape May, New Jersey leads at 1.04 (more housing units than residents) reflecting a large seasonal vacation housing stock that sits largely empty outside summer months. Monroe County Florida (Florida Keys), Barnstable Massachusetts (Cape Cod), and Walton County Florida follow the same pattern. These counties do not have a housing surplus in a meaningful sense; rather, their permanent resident population is small relative to the housing built to serve seasonal visitors. 
+
+The bottom 10% tells the opposite story. Kaufman County Texas appears here despite being one of the fastest growing counties in the dataset (rapid population growth has outpaced housing construction, creating genuine scarcity). Utah County Utah and Kings and Merced counties in California round out the bottom, all fast-growing areas where housing has struggled to keep pace with demand.
