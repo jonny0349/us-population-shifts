@@ -44,6 +44,37 @@ theme_acs <- theme_minimal()+
 theme_set(theme_acs)
 ```
 
+```{r color-palettes}
+# Intentionally created using the Okabe-Ito Palette for color blindness accessibility
+region_colors <- c(
+  "Northeast" = "#0072B2",
+  "Midwest" ="#E69F00",
+  "South" = "#009E73",
+  "West" = "#cc79A7",
+  "Territory" = "#999999"
+)
+
+tier_colors <- c(
+  "High Growth" = "#009e73",
+  "Moderate Growth" = "#E69F00",
+  "Stable" = "#0072B2",
+  "Decline" = "#D55E00"
+)
+
+aging_colors <- c(
+  "Aging" = "#D55E00",
+  "Transitional" = "#E69F00",
+  "Young" = "#0072B2"
+)
+
+diversity_colors <- c(
+  "High" = "#009E73",
+  "Moderate" = "#E69F00",
+  "Low" = "#0072B2"
+)
+```
+
+
 # Data Acquisition
 
 The five datasets used in this analysis come form the U.S. Census Bureau's American Community Survey (ACS) 1-Year Demographic Profile table DP05, covering county-level estimates for 2019, 2021, 2022, 2023, and 2024. The year 2020 is absent because the Census Bureau suspended data collection during the COVID-19 pandemic. 
