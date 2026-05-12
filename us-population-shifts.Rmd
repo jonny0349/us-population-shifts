@@ -1046,3 +1046,38 @@ Puerto Rico stands apart from the continental regions throughout the entire peri
 
 Among continental regions the Northeast leads throughout, crossing 19% by 2024 and accelerating noticeably after 2021. The Midwest follows closely while the South and West remain the youngest regions, starting lowest in 2019 and remaining tightly clustered through 2024. The convergence of the South and West lines suggests that despite their different demographic compositions, both regions are aging at nearly identical rates driven by the nationwide Baby Boomer cohort moving into retirement age.
 
+## Working Age Population Share Over Time by Region
+
+```{r working-age-by-region}
+census_clean %>%
+  group_by(survey_year, region) %>%
+  summarise(
+    total_working_age = sum(population_18_and_over - population_65_and_over, na.rm = TRUE),
+    total_pop = sum(total_population, na.rm = TRUE),
+    working_age_share = (total_working_age/total_pop) * 100,
+    .groups = "drop"
+  ) %>%
+  ggplot(aes(x = survey_year, y = working_age_share, color = region))+
+  geom_line(linewidth = 1)+
+  geom_point(size = 2)+
+  scale_color_manual(values = region_colors)+
+  scale_x_continuous(breaks = c(2019,2021,2022,2023,2024))+
+  scale_y_continuous(labels = label_number(suffix = "%"))+
+  labs(
+    title = "Working Age Population Share by Census Region (2019-2024)",
+    subtitle = "Weighted share of regional population between ages 18 and 64",
+    x = "Survey Year",
+    y = "Working Age Population Share",
+    color = "Region",
+    caption = "Source ACS DP05 1-Year Estimates"
+  )
+```
+
+Working age population share declined in every Census region between 2019 and 2024, the direct counterpart to the universal increase in senior share seen in the previous visualization. As the Baby Boomer generation continues moving out of the 18-64 age band, every region is losing ground in the share of its population that participates in the worforce. 
+
+The West maintains the highest working age share throughout the period, starting at 62.% in 2019 and ending at 61.9% in 2024 (a relatively modest decline compared to other regions. This resilience likely reflects continued in-migration of working age adults to Western metros, partially offsetting the aging of the existing population).
+
+The Northeast experiences the steepest decline among continental regions, dropping sharply after 2022 and converging with the South and Midwest by 2024. This acceleration mirrors the Northeast's rising senior share seen in the previous chart and suggests the region's aging dynamic is intensifying rather than stabilizing.
+
+The Territory remains the lowest throughout and continues its steady decline, bottoming out at 60.0% by 2024. Combined with its senior share already above 25%, Puerto Rico's working population is being compressed from both ends (a shrinking share of residents in prime working years and a growing share of seniors) with significant implications for the island's economic productivity and social services capacity. 
+
