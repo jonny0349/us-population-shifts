@@ -1165,3 +1165,55 @@ census_clean %>%
 
 The Midwest outlier above 0.70 is not a single county but two (Wyandotte County, Kansas and Cook County, Illinois) both appearing consistently across multiple years. Wyandotte County, anchored by Kansas City's urban core, carries a diversity index of 0.75-0.76 across 2021 through 2024. Cook County, home to Chicago, follows closely at 0.74. Both are major metropolitan counties whose diversity reflects decades of immigration and internal migration into large Midwestern cities, standing in sharp contrast to the predominantly rural, low-diversity counties that define the region's overall distribution.
 
+## Racial Diversity Over Time by Census Division
+
+```{r diversity-heatmap}
+census_clean %>%
+  filter(!is.na(diversity_index), !is.na(division)) %>%
+  group_by(division, survey_year) %>%
+  summarise(
+    avg_diversity = mean(diversity_index, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(division = reorder(division, avg_diversity),
+         survey_year = factor(survey_year)) %>% # Added this and commented out the scale_x_continuous to avoid having a gap between 2019-2021 due not 2020 not being present
+  ggplot(aes(x = survey_year, y = division, fill = avg_diversity))+
+  geom_tile(color = "white", linewidth = 0.5)+
+  scale_fill_gradient(
+    low = "#0072B2",
+    high = "#009E73",
+    name = "Avg Diversity\nIndex"
+  )+
+  #scale_x_continuous(breaks = c(2019,2021,2022,2023,2024))+
+  labs(
+    title = "Average Racial Diversity Index by Census Division (2019-2024)",
+    subtitle = "Divisions ordered by average diversity index across all years",
+    x = "Survey Year",
+    y = "Census Division",
+    caption = "Source: ACS DP05 1-Year Estimates"
+  )
+```
+
+```{r diversity-heatmap-table}
+census_clean %>%
+  filter(!is.na(diversity_index), !is.na(division)) %>%
+  group_by(division, survey_year) %>%
+  summarise(
+    avg_diversity = round(mean(diversity_index, na.rm = TRUE), 3),
+    .groups = "drop"
+  ) %>%
+  pivot_wider(names_from = survey_year, values_from = avg_diversity) %>%
+  mutate(change_2019_2024 = round(`2024` - `2019`, 3)) %>%
+  arrange(desc(change_2019_2024))
+```
+
+Every Census division increased in average racial diversity between 2019 and 2024 with no exceptions, confirming that diversification is a nationwide trend operating across all geographic contexts. However the pace and pattern vary considerably across divisions. 
+
+The Territory shows the largest absolute change at +0.189, but the trajectory is unusual (diversity jumps sharply from 0.543 in 2019 to 0.772 in 2021 before plateauing through 2024). This discontinuity almost certainly reflects the Census Bureau's redesign of the race question following the 2020 Census rather than a genuine demographic shift of that magnitude occurring in a single year. The 2019 value for the Territory should be interpreted with caution when making longitudinal comparisons.
+
+Among continental divisions, West South Central (+0.174) and Mountain (+0.166) lead in absolute change, driven by rapid diversification in Texas, Arizona, Nevada, and Colorado (states experiencing both high population growth and significant shifts in racial composition driven by Hispanic and Asian population increases). The Pacific division follows at +0.159, consistent with California's long-established trajectory toward greater diversity.
+
+The East South Central division shows the smallest increase among continental divisions at +0.059, suggesting that Alabama, Kentucky, Mississippi, and Tennessee are diversifying more slowly than the rest of the country. This division occupies the lower middle of the heatmap throughout the study period, neither the least diverse nor showing meaningful acceleration toward greater diversity.
+
+The heatmap makes the overall direction unmistakable (every row gets greener from left to right) while the ordering of divisions by average diversity reveals a persistent hierarchy that population change is shifting but not yet fundamentally reordering.
+
