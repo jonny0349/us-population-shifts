@@ -1112,3 +1112,56 @@ The Territory presents the starkest contrast. Puerto Rico has the largest share 
 The Midwest shows the highest share of Stable counties, suggesting a demographic landscape that is neither growing rapidly nor contracting meaningfully. This stability masks internal variation (the region contains both growing exurban counties near major metros and quietly shrinking rural counties) but at the regional level the dominant pattern is stasis.
 
 The Northeast is heavily concentrated in Moderate Growth with minimal representation at either extreme, while the West combines a healthy High Growth segment with low Decline, positioning it as the second most dynamic region after the South. 
+
+## Diversity Index Distribution by Region
+
+```{r diversity-by-region}
+census_clean %>%
+  filter(!is.na(diversity_index)) %>%
+  ggplot(aes(x = region, y = diversity_index, fill = region))+
+  geom_boxplot(alpha = 0.7, outlier.shape = 21, outlier.size = 1.5)+
+  scale_fill_manual(values = region_colors)+
+  scale_y_continuous(limits = c(0,1))+
+  labs(
+    title = "Racial Diversity Index Distribution by Region",
+    subtitle = "Herfindahl-based diversity score; higher values indicate greater diversity",
+    x = "Region",
+    y = "Diversity Index",
+    fill = "Region",
+    caption = "Source: ACS DP05 1-Year Estimates"
+  )+
+  theme(legend.position = "none")
+```
+
+```{r diversity-summary}
+census_clean %>%
+  filter(!is.na(diversity_index)) %>%
+  group_by(region) %>%
+  summarise(
+    min = round(min(diversity_index, na.rm = TRUE), 3),
+    q25 = round(quantile(diversity_index, 0.25, na.rm = TRUE), 3),
+    median = round(median(diversity_index, na.rm = TRUE), 3),
+    mean = round(mean(diversity_index, na.rm = TRUE), 3),
+    q75 = round(quantile(diversity_index, 0.75, na.rm = TRUE), 3),
+    max = round(max(diversity_index, na.rm = TRUE), 3)
+  ) %>%
+  arrange(desc(median))
+```
+
+The diversity index distribution reveals a clear regional hierarchy with the Territory at the top and the Midwest at the bottom. Puerto Rico's municipios cluster tightly around a median of 0.751 with a relatively narrow interquartile range, meaning high diversity is consistent across the island rather than driven by a few exceptional municipios. As noted in the derived variables section, this reflects how the Census race question captures Puerto Rico's population across multiple racial categories simultaneously.
+
+The South and West occupy the middle ground with medians of 0.499 and 0.475 respectively, but their distributions tell different stories. The South's box is more compact while the West's interquartile range is wider, stretching from 0.327 to 0.666 (reflecting the contrast between highly diverse coastal California counties and more homogeneous rural Mountain West counties within the same region).
+
+The Northeast sits at 0.328 with a wide spread of 0.203 to 0.509, capturing the sharp contrast between densely diverse urban counties like the Bronx and Kings County and the predominantely white rural counties of northern New England and Appalachian Pennsylvania. 
+
+The Midwest is the least diverse region with a media of 0.296 and the most compressed distribution of any continental region, meaning low diversity is the norm across the region rather than the exception. A single high outlier near 0/75 stands apart from the rest (likely a county anchored by a large university or military installation that draws a more diverse population that its surrounding area).
+
+```{r midwest-diversity-outlier}
+census_clean %>%
+  filter(region == "Midwest", diversity_index > 0.70) %>%
+  select(county_name, state_name, survey_year, diversity_index, total_population) %>%
+  arrange(desc(diversity_index))
+```
+
+The Midwest outlier above 0.70 is not a single county but two (Wyandotte County, Kansas and Cook County, Illinois) both appearing consistently across multiple years. Wyandotte County, anchored by Kansas City's urban core, carries a diversity index of 0.75-0.76 across 2021 through 2024. Cook County, home to Chicago, follows closely at 0.74. Both are major metropolitan counties whose diversity reflects decades of immigration and internal migration into large Midwestern cities, standing in sharp contrast to the predominantly rural, low-diversity counties that define the region's overall distribution.
+
