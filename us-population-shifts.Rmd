@@ -1010,3 +1010,39 @@ The housing to population ratio ranges from 0.287 to 1.042, with a median of 0.4
 The top 10% counties with the highest ratios are dominated by coastal resort and vacation destinations. Cape May, New Jersey leads at 1.04 (more housing units than residents) reflecting a large seasonal vacation housing stock that sits largely empty outside summer months. Monroe County Florida (Florida Keys), Barnstable Massachusetts (Cape Cod), and Walton County Florida follow the same pattern. These counties do not have a housing surplus in a meaningful sense; rather, their permanent resident population is small relative to the housing built to serve seasonal visitors. 
 
 The bottom 10% tells the opposite story. Kaufman County Texas appears here despite being one of the fastest growing counties in the dataset (rapid population growth has outpaced housing construction, creating genuine scarcity). Utah County Utah and Kings and Merced counties in California round out the bottom, all fast-growing areas where housing has struggled to keep pace with demand.
+
+# Visualizations
+
+## Senior Population Share Over Time by Region
+
+```{r senior-share-by-region}
+census_clean %>%
+  group_by(survey_year, region) %>%
+  summarise(
+    total_65_over = sum(population_65_and_over, na.rm = TRUE),
+    total_pop = sum(total_population, na.rm = TRUE),
+    senior_share = (total_65_over/total_pop) * 100,
+    .groups = "drop"
+  ) %>%
+  ggplot(aes(x = survey_year, y = senior_share, color = region))+
+  geom_line(linewidth = 1)+
+  geom_point(size = 2)+
+  scale_color_manual(values = region_colors)+
+  scale_x_continuous(breaks = c(2019,2021,2022,2023,2024))+
+  scale_y_continuous(labels = label_number(suffix = "%"))+
+  labs(
+    title = "Senior Population Share by Census Region (2019-2024)",
+    subtitle = "Weigthed share of regional population 65 and over",
+    x = "Survey Year",
+    y = "Senior Population Share",
+    color = "Region",
+    caption = "Source: ACS DP05 1-Year Estimates"
+  )
+```
+
+Every Census region experienced an increase in senior population share between 2019 and 2024 with no exceptions, confirming that population aging is a universal trend across the United States rather than a regional one. The trajectory is consistent and uninterrupted across all five survey years.
+
+Puerto Rico stands apart from the continental regions throughout the entire period. Starting at 22.4% in 2019 and reaching 25.6% by 2024, the Territory's senior share is already well above the 20% Aging threshold and continues to widen its lead over continental regions. This accelerating gap reflects two compounding forces: an aging resident population and sustained outmigration of younger residents, particularly following Hurricane Maria in 2017, which has left behind a disproportionately older demographic profile.
+
+Among continental regions the Northeast leads throughout, crossing 19% by 2024 and accelerating noticeably after 2021. The Midwest follows closely while the South and West remain the youngest regions, starting lowest in 2019 and remaining tightly clustered through 2024. The convergence of the South and West lines suggests that despite their different demographic compositions, both regions are aging at nearly identical rates driven by the nationwide Baby Boomer cohort moving into retirement age.
+
