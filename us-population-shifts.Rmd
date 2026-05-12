@@ -1081,3 +1081,34 @@ The Northeast experiences the steepest decline among continental regions, droppi
 
 The Territory remains the lowest throughout and continues its steady decline, bottoming out at 60.0% by 2024. Combined with its senior share already above 25%, Puerto Rico's working population is being compressed from both ends (a shrinking share of residents in prime working years and a growing share of seniors) with significant implications for the island's economic productivity and social services capacity. 
 
+## Population Change Tier Distribution by Region
+
+```{r pop-change-tier-by-region}
+census_clean %>%
+  filter(survey_year == 2024, !is.na(pop_change_tier)) %>%
+  count(region, pop_change_tier) %>%
+  group_by(region) %>%
+  mutate(pct = n / sum(n) * 100) %>%
+  ungroup() %>%
+  mutate(pop_change_tier = factor(pop_change_tier, levels = c("High Growth", "Moderate Growth", "Stable", "Decline"))) %>%
+  ggplot(aes(x = region, y = pct, fill = pop_change_tier))+
+  geom_col()+
+  scale_fill_manual(values = tier_colors)+
+  scale_y_continuous(labels = label_number(suffix = "%"))+
+  labs(
+    title = "Population Change Tier Distribution by Region (2019-2024)",
+    subtitle = "Share of counties in each growth tier per region",
+    x = "Region",
+    y = "Share of Counties",
+    fill = "Population Change Tier",
+    caption = "Source: ACS DP05 1-Year Estimates"
+  )
+```
+
+The population change tier distribution reveals sharp regional contrasts in growth patterns between 2019 and 2024. The South leads all regions in dynamism, it carries the largest share of High Growth counties and the smallest share of counties in Decline, reflecting the sustained Sun Belt migration that has defined American demographic geography over the past decade. Texas counties in particular, as identified in the derived variables section, anchor much of this High Growth concentration.
+
+The Territory presents the starkest contrast. Puerto Rico has the largest share of Decline counties of any region by a significant margin, with roughly 30% of its municipios experiencing population contraction of more than 2% over the five year window. This is consistent with the sustained outmigration from the island documented in both the sex ratio and the senior share analyses (Puerto Rico is losing population across multiple dimensions simultaneously).
+
+The Midwest shows the highest share of Stable counties, suggesting a demographic landscape that is neither growing rapidly nor contracting meaningfully. This stability masks internal variation (the region contains both growing exurban counties near major metros and quietly shrinking rural counties) but at the regional level the dominant pattern is stasis.
+
+The Northeast is heavily concentrated in Moderate Growth with minimal representation at either extreme, while the West combines a healthy High Growth segment with low Decline, positioning it as the second most dynamic region after the South. 
