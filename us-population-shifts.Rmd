@@ -1273,3 +1273,40 @@ The bottom of the distribution represents genuine housing scarcity relative to p
 The regional trend chart reveals two persistent patterns. The West maintains the lowest average ratio across all five survey years, confirming it as the most supply-constrained region relative to its population (a finding consistent with the well-documented housing affordability crisis in California, Oregon, and Washington). The Northeast holds the highest ratio among continental regions throughout, suggesting relatively greater housing availability per resident, though this average masks significant variation between dense urban cores and more spacious rural areas within the region. 
 
 The Territory shows a sharp dip in 2021 before recovering to above its 2019 level by 2023. This V-shaped pattern likely reflects disruptions in housing unit reporting during the pandemic year rather than a genuine contraction and rapid expansion of Puerto Rico's housing stock in a two year window. 
+
+## Housing Supply vs Population Growth
+
+```{r housing-vs-growth}
+census_clean %>%
+  filter(survey_year == 2024, !is.na(housing_to_pop_ratio), !is.na(pop_change_tier), !is.na(pct_change)) %>%
+  ggplot(aes(x = pct_change, y = housing_to_pop_ratio, color = pop_change_tier))+
+  geom_point(alpha = 0.6, size = 2)+
+  geom_vline(xintercept = 0, linetype = "dashed", color = "gray50")+
+  geom_line(yintercept = quantile(census_clean$housing_to_pop_ratio, 0.10, na.rm = TRUE), linetype = "dotted", color = "gray50")+
+  scale_color_manual(values = tier_colors)+
+  scale_x_continuous(labels = label_number(suffix = "%"))+
+  scale_y_continuous(labels = label_number(accuracy = 0.01))+
+  annotate(
+    "text", x = 15, y = 0.30,
+    label = "High Growth,\nlow housing supply",
+    size = 3,
+    color = "gray30"
+  )+
+  labs(
+    title = "Housing Supply vs Population Growth by County (2019 - 2024)",
+    subtitle = "Each point is a county; dotted line marks the bottom 10% housing ratio threshold",
+    x = "Population Change 2019-2024 (%)",
+    y = "Housing Units per Resident (2024)",
+    color = "Population Change Tier",
+    caption = "Source: ACS DP05 1-Year Estimates"
+  )
+```
+
+The scatter plot reveals a clear negative relationship between population growth and housing supply,as population change increases moving right along the x-axis, housing units per resident tend to decrease. This pattern reflects a fundamental constraint of rapid growth: residential construction takes time, permitting, and capital, and in the fastest growing counties population is arriving faster than housing can be built to accomodate it. 
+
+High Growth counties cluster visibly in the lower right quadrant of the chart, combining strong population increases with some of the lowest housing ratios in the dataset. These counties face the most acute housing pressure (their populations are expanding rapidly while their per-resident housing stock is already among the thinnest in the country). Kaufman County, Texas, identified earlier as the fastest growing county in the dataset at 45.3%, appears as the rightmost teal point and sits well below the bottom 10% housing ratio threshold marked by the dotted line.
+
+Decline counties occupy the opposite corner (upper left) where shrinking populations leave behind a housing stock that grows relatively larger per remaining residents. This is not a sign of housing abundance but of demographic contraction, where vacancy rates rise as people leave and the built environment outlasts the community it was designed to serve.
+
+The vertical cluster of points near zero percent change represents Stable counties, which show the widest range of housing ratios (from well-supplied to constrained) suggesting that housing availability in stable counties is determined more by local geography and land use policy than by population pressure. 
+
