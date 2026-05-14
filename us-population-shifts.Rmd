@@ -1217,3 +1217,59 @@ The East South Central division shows the smallest increase among continental di
 
 The heatmap makes the overall direction unmistakable (every row gets greener from left to right) while the ordering of divisions by average diversity reveals a persistent hierarchy that population change is shifting but not yet fundamentally reordering.
 
+## Housing to Population Ration Distribution
+
+```{r housing-ratio-distribution}
+census_clean %>%
+  filter(survey_year == 2024, !is.na(housing_to_pop_ratio)) %>%
+  ggplot(aes(x = housing_to_pop_ratio, fill = housing_ratio_flag))+
+  geom_histogram(bins = 40, color = "white")+
+  scale_fill_manual(
+    values = c(
+      "Top 10%" = "#009E73",
+      "Typical" = "#999999",
+      "Bottom 10%" = "#D55E00"
+    )
+  )+
+  scale_x_continuous(labels = label_number(accuracy = 0.01))+
+  labs(
+    title = "Housing to Population Ration Distribution (2024)",
+    subtitle = "Counties flagged in the top and bottom 10% of the distribution",
+    x = "Housing Units per Resident",
+    y = "Number of Counties",
+    fill = "Flag",
+    caption = "Source: ACS DP05 1-Year Estimates"
+  )
+```
+
+```{r housing-ratio-by-region}
+census_clean %>%
+  filter(!is.na(housing_to_pop_ratio), !is.na(region)) %>%
+  group_by(region, survey_year) %>%
+  summarise(
+    avg_ratio = mean(housing_to_pop_ratio, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  ggplot(aes(x = survey_year, y = avg_ratio, color = region)) +
+  geom_line(linewidth = 1) +
+  geom_point(size = 2)+
+  scale_color_manual(values = region_colors)+
+  scale_x_continuous(breaks = c(2019, 2021, 2022, 2023, 2024))+
+  scale_y_continuous(labels = label_number(accuracy = 0.01))+
+  labs(
+    title = "Average Housing to Population Ratio by Region (2019-2024)",
+    subtitle = "Average number of housing units per resident across counties in each region",
+    x = "Survey Year",
+    y = "Avg Housing Units per Resident",
+    color = "Region",
+    caption = "Source: ACS DP05 1-Year Estimates"
+  )
+```
+
+The housing to population distribution is approximately normal for the bulk of counties, centered around 0.43 to 0.45 housing units per resident, with a pronounced right tail driven by seasonal resort counties where vacation housing stock inflates the ratio well above the typical range. The color coding makes the two tails immediately identifiable (Bottom 10% counties cluster tight below 0.40 while the Top 10% counties spread across a wider range extending past 0.60 and into the extreme outlier territory above 1.0).
+
+The bottom of the distribution represents genuine housing scarcity relative to population. These are fast-growing counties where residential construction has not kept pace with population influx, or dense urban counties where land constraints limit new housing supply. The top of the distribution, as established in the derived variables section, is dominated by coastal vacation destinations where seasonal housing stock serves as transient population far larger than the permanent resident count. 
+
+The regional trend chart reveals two persistent patterns. The West maintains the lowest average ratio across all five survey years, confirming it as the most supply-constrained region relative to its population (a finding consistent with the well-documented housing affordability crisis in California, Oregon, and Washington). The Northeast holds the highest ratio among continental regions throughout, suggesting relatively greater housing availability per resident, though this average masks significant variation between dense urban cores and more spacious rural areas within the region. 
+
+The Territory shows a sharp dip in 2021 before recovering to above its 2019 level by 2023. This V-shaped pattern likely reflects disruptions in housing unit reporting during the pandemic year rather than a genuine contraction and rapid expansion of Puerto Rico's housing stock in a two year window. 
