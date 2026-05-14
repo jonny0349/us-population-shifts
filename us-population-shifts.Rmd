@@ -1310,3 +1310,50 @@ Decline counties occupy the opposite corner (upper left) where shrinking populat
 
 The vertical cluster of points near zero percent change represents Stable counties, which show the widest range of housing ratios (from well-supplied to constrained) suggesting that housing availability in stable counties is determined more by local geography and land use policy than by population pressure. 
 
+## The Aging Growth Tension
+
+```{r aging-growth}
+census_clean %>%
+  filter(survey_year == 2024, !is.na(senior_pop_share), !is.na(pct_change), !is.na(pop_change_tier)) %>%
+  ggplot(aes(x = pct_change, y = senior_pop_share, color = pop_change_tier))+
+  geom_point(alpha = 0.6, size = 2)+
+  geom_vline(xintercept = 0, linetype = "dashed", color = "gray50")+
+  geom_hline(yintercept = 20, linetype = "dotted", color = "gray50")+
+  scale_color_manual(values = tier_colors)+
+  scale_x_continuous(labels = label_number(suffix = "%"))+
+  scale_y_continuous(labels = label_number(suffix = "%"))+
+  annotate(
+    "text", x = 30, y = 55,
+    label = "Sumter County, FL",
+    size = 3,
+    color = "gray30"
+  )+
+  annotate(
+    "text", x = -5, y = 22,
+    label = "Growing older,\nshrinking population",
+    size = 3,
+    color = "gray10"
+  )+
+  annotate(
+    "text", x = 30, y = 10,
+    label = "Growing fast,\nstill young",
+    size = 3,
+    color = "gray30"
+  )+
+  labs(
+    title = "Senior Population Share vs Population Growth by County (2019-2024)",
+    subtitle = "Dotted line marks the 20% Aging threshold; dashed line marks zero population change",
+    x = "Population Change 2019-2024",
+    y = "Senior Population Share (2024)",
+    color = "Population Change Tier",
+    captio = "Source: ACS DP05 1-Year Estimates"
+  )
+```
+
+The aging-growth scatter reveals a meaningful negative relationship between population growth and senior share, counties growing fastest tend to have younger populations, while counties losing residents or staying stable tend to skew older. This pattern reflects the demographic composition of internal migration in the United States: the households relocating to high-growth Sun Belt exurbs are disproportionately working-age families and younger adults, while older residents are more likely to age in place in slower-growing or declining communities. 
+
+Sumter County, Florida, sits entirely apart from the rest of the dataset (a High Growth county with a senior share above 55%), occupying a position that no other county approaches. It is the only county that simultaneously grows rapidly and maintains an extreme elderly majority, driven by the continued expansion of The Villages retirement community rather than the family-driven migration typical of other High Growth counties. 
+
+The upper left quadrant captures a demographically vulnerable cluster of counties (those simultaneously losing population and crossing the 20% Aging threshold). These communities face a compounding challenge: a shrinking tax base, rising demand for senior services, and a declining working-age population to provide and fund those services. This combination represents one of the more pressing policy implications to emerger from this analysis.
+
+The lower right quadrant (growing fast and still young), is dominated by High Growth teal counties, primarily Texas exurbs and Mountain West counties absorbing population from expensive coastal metros. These counties face the opposite challenge: rapid infrastructure demand driven by population growth rather than aging, with housing supply already under pressure as identified in the previous visualization. 
