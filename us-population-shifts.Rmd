@@ -1357,3 +1357,77 @@ Sumter County, Florida, sits entirely apart from the rest of the dataset (a High
 The upper left quadrant captures a demographically vulnerable cluster of counties (those simultaneously losing population and crossing the 20% Aging threshold). These communities face a compounding challenge: a shrinking tax base, rising demand for senior services, and a declining working-age population to provide and fund those services. This combination represents one of the more pressing policy implications to emerger from this analysis.
 
 The lower right quadrant (growing fast and still young), is dominated by High Growth teal counties, primarily Texas exurbs and Mountain West counties absorbing population from expensive coastal metros. These counties face the opposite challenge: rapid infrastructure demand driven by population growth rather than aging, with housing supply already under pressure as identified in the previous visualization. 
+
+## Sex Ratio vs Racial Diversity Index
+
+```{r sex-ratio-vs-diversity}
+census_clean %>%
+  filter(
+    survey_year == 2024,
+    !is.na(sex_ratio),
+    !is.na(diversity_index),
+    !is.na(region)
+  ) %>%
+  mutate(
+    q1 = quantile(sex_ratio, 0.25, na.rm = TRUE),
+    q3 = quantile(sex_ratio, 0.75, na.rm = TRUE),
+    iqr = q3 - q1,
+    lower = q1 - 1.5 * iqr,
+    upper = q3 + 1.5 * iqr,
+    outlier_status = if_else(
+      sex_ratio < lower | sex_ratio > upper,
+      "Outlier",
+      "Typical"
+    )
+  ) %>%
+  ggplot(aes(x = diversity_index, y = sex_ratio, color = region))+
+  geom_hline(yintercept = 100, linetype = "dashed", color = "gray50")+
+  geom_point(aes(size = outlier_status, alpha = outlier_status))+
+  scale_color_manual(values = region_colors)+
+  scale_size_manual(values = c("Outlier" = 3, "Typical" = 1.5))+
+  scale_alpha_manual(values = c("Outlier" = 0.9, "Typical" = 0.4))+
+  scale_x_continuous(limits = c(0, 1))+
+  scale_y_continuous(labels = label_number(accuracy = 0.1))+
+  annotate(
+    "text", x = 0.15, y = 133,
+    label = "Low diversity,\nhigh male ratio\n(prison/military)",
+    size = 3,
+    color = "gray30"
+  )+
+  annotate(
+    "text", x = 0.15, y = 84,
+    label = "Low diversity,\nlow male ratio",
+    size = 3,
+    color = "gray30"
+  )+
+  labs(
+    title = "Sex Ratio vs Racial Diversity Index by County (2024)",
+    subtitle = "Dashed line marks a balanced sex ratio of 100; outliers defined by 1.5 x IQR rule",
+    x = "Racial Diversity Index",
+    y = "Sex Ratio (Males per 100 Females",
+    color = "Region",
+    size = "",
+    alpha = "",
+    caption = "Source: ACS DP05 1-Year Estimates"
+  )+
+  theme(legend.position = "bottom")+
+  guides(size = "none", alpha = "none")
+```
+
+```{r sex-ratio-diversity-outlier}
+census_clean %>%
+  filter(
+    survey_year == 2024,
+    sex_ratio > 130,
+    diversity_index > 0.40
+  ) %>%
+  select(county_name, state_name, sex_ratio, diversity_index, total_population)
+```
+
+The relationship between sex ratio and racial diversity reveals a clear pattern: extreme sex ratio outliers are concentrated among low diversity counties on the left side of the chart, and become increasingly rare as diversity increases. This confirms that the institutional population effects driving sex ratio extremes (prisons and military installations) are predominantly located in less diverse, more rural counties where their demographic footprint is proportionally larger to the surrounding civilian population.
+
+The high male ratio outliers in the upper left quadrant are almost entirely explained by correctional facilities and military bases in predominantly white rural counties across the Midwest, Northeast, and South. Walker County, Texas stands as the notable exception, with a diversity index of 0.61 and a sex ratio of 134.3, it sits well to the right of the other high-ratio outliers. This reflects the racial composition of the Texas Department of Criminal Justice's Huntsville prison complex, which incarcerates a diverse inmate population that simultaneously inflates both the male ratio and the diversity score. It is a striking example of how a single institution can distort multiple demographic indicators at once. 
+
+The low male ratio outliers in the lower left (predominantly Southern counties with low diversity indices) reflect a different structural reality. Research consistently links depressed male-to-female ratios in majority-Black rural communities to higher rates of male incarceration and premature mortality, both of which remove men from the counted residential population. 
+
+As diversity increases toward the right side of the chart, counties converge tightly around the balanced ratio of 100, with outliers becoming rare above a diversity index of 0.60. The Territory counties cluster at the far right with consistently sub-100 ratios, reinforcing the Puerto Rico outmigration pattern identified throughout this analysis. Taken together, this visualization suggests that demographic complexity, more racial groups, larger and more mixed populations, acts as a stabilizing force on sex ratios, absorbing and diluting the distortions that institutional populations introduce in more homogeneous communities.
