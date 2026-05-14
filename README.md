@@ -28,6 +28,7 @@ Five separate CSV files must be downloaded, one per survey year, filtered to all
 
 ## Project Structure
 
+```
 us-population-shifts/
 ├── README.md
 ├── .gitignore
@@ -41,6 +42,7 @@ us-population-shifts/
 │       ├── 2023/
 │       └── 2024/
 └── output/
+```
 
 ## How to Reproduce 
 
