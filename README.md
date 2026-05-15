@@ -10,6 +10,8 @@ a five-year window that spans the COVID-19 pandemic and its aftermath.
 The analysis was originally developed as a capstone project for INSS615: Data Wrangling for Visualization at Morgan State University and has since been refactored into a portfolio-quality
 exploratory analysis with a clear pipeline, expanded EDA, and ning ggplot2 visualizations.
 
+**Rendered notebook:** [View on RPubs](https://rpubs.com/Jonatan53/us-population-shifts)
+
 ## Data Source
 
 **U.S. Census Bureau - American Community Survey 1-Year Estimates, Table DP05**

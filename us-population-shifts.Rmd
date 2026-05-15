@@ -3,12 +3,12 @@ title: "The Changing Face of America"
 author: "Jonatan Tobón González"
 date: "`r Sys.Date()`"
 output:
-  word_document:
-    toc: true
   html_document:
     toc: true
     toc_float: true
     df_print: paged
+  word_document:
+    toc: true
 subtitle: "Exploratory Analysis of County-Level Demographic Shifts (2019-2024)"
 ---
 
